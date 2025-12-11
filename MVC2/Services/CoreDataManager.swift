@@ -12,6 +12,7 @@ final class CoreDataManager {
 
     static let shared = CoreDataManager()
     
+    private let fileManagerService = FileManagerService.shared
     private init() {}
 
     lazy var persistentContainer: NSPersistentContainer = {
@@ -88,6 +89,14 @@ final class CoreDataManager {
     }
     
     func deleteNote(_ note: Note) {
+        if let images = note.images as? Set<NoteImage> {
+            for image in images {
+                if let path = image.imagePath {
+                    fileManagerService.deleteImage(at: path)
+                }
+                context.delete(image)
+            }
+        }
         context.delete(note)
         saveContext()
     }
@@ -120,6 +129,9 @@ final class CoreDataManager {
         if let note = noteImage.note {
             note.modifiedDate = Date()
         }
+        if let path = noteImage.imagePath {
+            fileManagerService.deleteImage(at: path)
+        }
         context.delete(noteImage)
         saveContext()
     }
@@ -127,6 +139,22 @@ final class CoreDataManager {
     func deleteAllImages(for note: Note) {
         guard let images = note.images as? Set<NoteImage> else { return }
         for image in images {
+            if let path = image.imagePath {
+                fileManagerService.deleteImage(at: path)
+            }
+            context.delete(image)
+        }
+        note.modifiedDate = Date()
+        saveContext()
+    }
+
+    func deleteImages(for note: Note, paths: [String]) {
+        guard !paths.isEmpty else { return }
+        let images = fetchImages(for: note)
+        for image in images where paths.contains(image.imagePath ?? "") {
+            if let path = image.imagePath {
+                fileManagerService.deleteImage(at: path)
+            }
             context.delete(image)
         }
         note.modifiedDate = Date()

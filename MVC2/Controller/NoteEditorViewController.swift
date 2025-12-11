@@ -12,6 +12,9 @@ final class NoteEditorViewController: UIViewController {
     private var note: Note?
     private let coreDataManager = CoreDataManager.shared
     private var selectedImages: [UIImage] = []
+    private let fileManagerService = FileManagerService.shared
+    private var existingImagePaths: [String] = []
+    private var deletedImagePaths: [String] = []
 
     private lazy var scrollView: UIScrollView = {
         let scroll = UIScrollView()
@@ -186,6 +189,17 @@ final class NoteEditorViewController: UIViewController {
         contentTextView.text = note.content
         categoryTextField.text = note.category
         contentPlaceholder.isHidden = !(note.content?.isEmpty ?? true)
+        
+        let images = coreDataManager.fetchImages(for: note)
+        existingImagePaths = []
+        selectedImages = []
+        
+        for path in images.compactMap({ $0.imagePath }) {
+            if let image = fileManagerService.loadImage(at: path) {
+                existingImagePaths.append(path)
+                selectedImages.append(image)
+            }
+        }
         updateImagesStackView()
     }
 
@@ -200,8 +214,11 @@ final class NoteEditorViewController: UIViewController {
         
         if let existingNote = note {
             coreDataManager.updateNote(existingNote, title: title, content: content, category: category)
+            handleImagesSave(for: existingNote)
         } else {
-            coreDataManager.createNote(title: title, content: content, category: category)
+            let newNote = coreDataManager.createNote(title: title, content: content, category: category)
+            note = newNote
+            handleImagesSave(for: newNote)
         }
         
         navigationController?.popViewController(animated: true)
@@ -278,8 +295,15 @@ final class NoteEditorViewController: UIViewController {
         
         let alert = UIAlertController(title: "Изображение", message: nil, preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
-            self?.selectedImages.remove(at: index)
-            self?.updateImagesStackView()
+            guard let self else { return }
+            
+            if index < self.existingImagePaths.count {
+                let removedPath = self.existingImagePaths.remove(at: index)
+                self.deletedImagePaths.append(removedPath)
+            }
+            
+            self.selectedImages.remove(at: index)
+            self.updateImagesStackView()
         })
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         present(alert, animated: true)
@@ -307,5 +331,26 @@ extension NoteEditorViewController: UIImagePickerControllerDelegate, UINavigatio
         }
         
         updateImagesStackView()
+    }
+}
+
+private extension NoteEditorViewController {
+    func handleImagesSave(for note: Note) {
+        if !deletedImagePaths.isEmpty {
+            coreDataManager.deleteImages(for: note, paths: deletedImagePaths)
+            fileManagerService.deleteImages(from: deletedImagePaths)
+        }
+        
+        let existingCount = min(existingImagePaths.count, selectedImages.count)
+        let newImages = Array(selectedImages.dropFirst(existingCount))
+        let newPaths = fileManagerService.saveImages(newImages)
+        
+        for (offset, path) in newPaths.enumerated() {
+            coreDataManager.addImage(
+                to: note,
+                imagePath: path,
+                orderIndex: Int32(existingCount + offset)
+            )
+        }
     }
 }
