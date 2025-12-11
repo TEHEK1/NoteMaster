@@ -9,13 +9,30 @@ import UIKit
 
 final class NotesListViewController: UIViewController {
 
+    private let coreDataManager = CoreDataManager.shared
+    private var notes: [Note] = []
+
     private lazy var tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .plain)
         table.translatesAutoresizingMaskIntoConstraints = false
         table.delegate = self
         table.dataSource = self
-        table.register(UITableViewCell.self, forCellReuseIdentifier: "NoteCell")
+        table.register(NoteCell.self, forCellReuseIdentifier: NoteCell.identifier)
+        table.rowHeight = UITableView.automaticDimension
+        table.estimatedRowHeight = 100
         return table
+    }()
+    
+    private lazy var emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Нет заметок\nНажмите + чтобы создать"
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.textColor = .secondaryLabel
+        label.font = .systemFont(ofSize: 18)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.isHidden = true
+        return label
     }()
 
     override func viewDidLoad() {
@@ -23,17 +40,26 @@ final class NotesListViewController: UIViewController {
         setupUI()
         setupNavigationBar()
     }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        loadNotes()
+    }
 
     private func setupUI() {
         view.backgroundColor = .systemBackground
         
         view.addSubview(tableView)
+        view.addSubview(emptyStateLabel)
         
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
     
@@ -48,18 +74,44 @@ final class NotesListViewController: UIViewController {
         )
     }
 
+    private func loadNotes() {
+        notes = coreDataManager.fetchNotes()
+        tableView.reloadData()
+        updateEmptyState()
+    }
+    
+    private func updateEmptyState() {
+        emptyStateLabel.isHidden = !notes.isEmpty
+        tableView.isHidden = notes.isEmpty
+    }
+
     @objc private func addNoteTapped() {
-        print("Add note tapped")
+        let editorVC = NoteEditorViewController()
+        navigationController?.pushViewController(editorVC, animated: true)
+    }
+    
+    private func deleteNote(at indexPath: IndexPath) {
+        let note = notes[indexPath.row]
+        coreDataManager.deleteNote(note)
+        notes.remove(at: indexPath.row)
+        tableView.deleteRows(at: [indexPath], with: .automatic)
+        updateEmptyState()
     }
 }
 
 extension NotesListViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 0
+        return notes.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "NoteCell", for: indexPath)
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: NoteCell.identifier, for: indexPath) as? NoteCell else {
+            return UITableViewCell()
+        }
+        
+        let note = notes[indexPath.row]
+        cell.configure(with: note)
+        
         return cell
     }
 }
@@ -67,5 +119,19 @@ extension NotesListViewController: UITableViewDataSource {
 extension NotesListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        let note = notes[indexPath.row]
+        let editorVC = NoteEditorViewController(note: note)
+        navigationController?.pushViewController(editorVC, animated: true)
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "Удалить") { [weak self] _, _, completion in
+            self?.deleteNote(at: indexPath)
+            completion(true)
+        }
+        deleteAction.image = UIImage(systemName: "trash")
+        
+        return UISwipeActionsConfiguration(actions: [deleteAction])
     }
 }
