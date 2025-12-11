@@ -187,6 +187,34 @@ final class CoreDataManager {
         }
     }
 
+    func fetchNotes(search: String?, category: String?) -> [Note] {
+        let request: NSFetchRequest<Note> = Note.fetchRequest()
+        var predicates: [NSPredicate] = []
+        
+        if let category, !category.isEmpty {
+            predicates.append(NSPredicate(format: "category == %@", category))
+        }
+        
+        if let searchText = search?.trimmingCharacters(in: .whitespacesAndNewlines), !searchText.isEmpty {
+            let title = NSPredicate(format: "title CONTAINS[cd] %@", searchText)
+            let content = NSPredicate(format: "content CONTAINS[cd] %@", searchText)
+            predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [title, content]))
+        }
+        
+        if !predicates.isEmpty {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        }
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "modifiedDate", ascending: false)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Error fetching filtered notes: \(error)")
+            return []
+        }
+    }
+
     func fetchCategories() -> [String] {
         let notes = fetchNotes()
         let categories = Set(notes.compactMap { $0.category })

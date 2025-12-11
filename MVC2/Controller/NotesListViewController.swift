@@ -11,6 +11,8 @@ final class NotesListViewController: UIViewController {
 
     private let coreDataManager = CoreDataManager.shared
     private var notes: [Note] = []
+    private var selectedCategory: String?
+    private let searchController = UISearchController(searchResultsController: nil)
 
     private lazy var tableView: UITableView = {
         let table = UITableView(frame: .zero, style: .plain)
@@ -39,6 +41,7 @@ final class NotesListViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupNavigationBar()
+        setupSearch()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -67,17 +70,14 @@ final class NotesListViewController: UIViewController {
         title = "Заметки"
         navigationController?.navigationBar.prefersLargeTitles = true
         
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .add,
-            target: self,
-            action: #selector(addNoteTapped)
-        )
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNoteTapped)),
+            UIBarButtonItem(title: "Категория", style: .plain, target: self, action: #selector(categoryTapped))
+        ]
     }
 
     private func loadNotes() {
-        notes = coreDataManager.fetchNotes()
-        tableView.reloadData()
-        updateEmptyState()
+        applyFilters(searchText: searchController.searchBar.text)
     }
     
     private func updateEmptyState() {
@@ -93,9 +93,44 @@ final class NotesListViewController: UIViewController {
     private func deleteNote(at indexPath: IndexPath) {
         let note = notes[indexPath.row]
         coreDataManager.deleteNote(note)
-        notes.remove(at: indexPath.row)
-        tableView.deleteRows(at: [indexPath], with: .automatic)
+        applyFilters(searchText: searchController.searchBar.text)
+    }
+    
+    private func setupSearch() {
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchResultsUpdater = self
+        searchController.searchBar.placeholder = "Поиск по заголовку и тексту"
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
+    }
+    
+    private func applyFilters(searchText: String?) {
+        notes = coreDataManager.fetchNotes(
+            search: searchText,
+            category: selectedCategory
+        )
+        tableView.reloadData()
         updateEmptyState()
+    }
+    
+    @objc private func categoryTapped() {
+        let categories = coreDataManager.fetchCategories()
+        let alert = UIAlertController(title: "Категория", message: nil, preferredStyle: .actionSheet)
+        
+        alert.addAction(UIAlertAction(title: "Все", style: .default) { [weak self] _ in
+            self?.selectedCategory = nil
+            self?.applyFilters(searchText: self?.searchController.searchBar.text)
+        })
+        
+        for category in categories {
+            alert.addAction(UIAlertAction(title: category, style: .default) { [weak self] _ in
+                self?.selectedCategory = category
+                self?.applyFilters(searchText: self?.searchController.searchBar.text)
+            })
+        }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
     }
 }
 
@@ -133,5 +168,11 @@ extension NotesListViewController: UITableViewDelegate {
         deleteAction.image = UIImage(systemName: "trash")
         
         return UISwipeActionsConfiguration(actions: [deleteAction])
+    }
+}
+
+extension NotesListViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        applyFilters(searchText: searchController.searchBar.text)
     }
 }
