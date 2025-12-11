@@ -41,12 +41,13 @@ final class CoreDataManager {
     }
     
     @discardableResult
-    func createNote(title: String, content: String?, category: String?) -> Note {
+    func createNote(title: String, content: String?, category: String?, tags: [String]? = nil) -> Note {
         let note = Note(context: context)
         note.id = UUID()
         note.title = title
         note.content = content
         note.category = category
+        attachTags(tags, to: note)
         note.createdDate = Date()
         note.modifiedDate = Date()
         
@@ -79,10 +80,11 @@ final class CoreDataManager {
         }
     }
     
-    func updateNote(_ note: Note, title: String, content: String?, category: String?) {
+    func updateNote(_ note: Note, title: String, content: String?, category: String?, tags: [String]? = nil) {
         note.title = title
         note.content = content
         note.category = category
+        attachTags(tags, to: note)
         note.modifiedDate = Date()
         
         saveContext()
@@ -269,5 +271,97 @@ final class CoreDataManager {
         let notes = fetchNotes()
         let categories = Set(notes.compactMap { $0.category })
         return Array(categories).sorted()
+    }
+    
+    func fetchTags() -> [String] {
+        let request: NSFetchRequest<Tag> = Tag.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+        do {
+            let tags = try context.fetch(request)
+            return tags.compactMap { $0.name }
+        } catch {
+            print("Error fetching tags: \(error)")
+            return []
+        }
+    }
+    
+    func tagsArray(for note: Note) -> [String] {
+        guard let set = note.tags as? Set<Tag> else { return [] }
+        return set.compactMap { $0.name }
+    }
+    
+    func fetchNotes(search: String?, category: String?, tags: [String]) -> [Note] {
+        let request: NSFetchRequest<Note> = Note.fetchRequest()
+        var predicates: [NSPredicate] = []
+        
+        if let category, !category.isEmpty {
+            predicates.append(NSPredicate(format: "category == %@", category))
+        }
+        
+        if let searchText = search?.trimmingCharacters(in: .whitespacesAndNewlines), !searchText.isEmpty {
+            let title = NSPredicate(format: "title CONTAINS[cd] %@", searchText)
+            let content = NSPredicate(format: "content CONTAINS[cd] %@", searchText)
+            predicates.append(NSCompoundPredicate(orPredicateWithSubpredicates: [title, content]))
+        }
+        
+        if !tags.isEmpty {
+            let clean = tags
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            if !clean.isEmpty {
+                predicates.append(
+                    NSPredicate(format: "SUBQUERY(tags, $t, $t.name IN[c] %@).@count == %d", clean, clean.count)
+                )
+            }
+        }
+        
+        if !predicates.isEmpty {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        }
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "modifiedDate", ascending: false)]
+        
+        do {
+            return try context.fetch(request)
+        } catch {
+            print("Error fetching filtered notes: \(error)")
+            return []
+        }
+    }
+
+    private func attachTags(_ tags: [String]?, to note: Note) {
+        guard let tags = tags else {
+            note.tags = nil
+            return
+        }
+        
+        let clean = tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        guard !clean.isEmpty else {
+            note.tags = nil
+            return
+        }
+        
+        var objects: [Tag] = []
+        for name in clean {
+            objects.append(fetchOrCreateTag(named: name))
+        }
+        note.tags = NSSet(array: objects)
+    }
+    
+    private func fetchOrCreateTag(named name: String) -> Tag {
+        let request: NSFetchRequest<Tag> = Tag.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", name)
+        request.fetchLimit = 1
+        
+        if let existing = try? context.fetch(request).first {
+            return existing
+        }
+        
+        let tag = Tag(context: context)
+        tag.name = name
+        return tag
     }
 }

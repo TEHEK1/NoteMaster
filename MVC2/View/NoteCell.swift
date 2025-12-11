@@ -58,6 +58,14 @@ final class NoteCell: UITableViewCell {
         label.clipsToBounds = true
         return label
     }()
+    
+    private lazy var tagsLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 12)
+        label.textColor = .systemTeal
+        label.numberOfLines = 0
+        return label
+    }()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -76,6 +84,7 @@ final class NoteCell: UITableViewCell {
         containerStack.addArrangedSubview(titleLabel)
         containerStack.addArrangedSubview(contentPreviewLabel)
         containerStack.addArrangedSubview(metaStack)
+        containerStack.addArrangedSubview(tagsLabel)
         
         metaStack.addArrangedSubview(dateLabel)
         metaStack.addArrangedSubview(categoryLabel)
@@ -108,6 +117,20 @@ final class NoteCell: UITableViewCell {
         } else {
             categoryLabel.isHidden = true
         }
+        
+        if let tagSet = note.tags as? Set<Tag> {
+            let tags = tagSet.compactMap { $0.name }.filter { !$0.isEmpty }
+            if tags.isEmpty {
+                tagsLabel.isHidden = true
+                tagsLabel.text = nil
+            } else {
+                tagsLabel.isHidden = false
+                tagsLabel.text = tags.map { "#\($0)" }.joined(separator: " ")
+            }
+        } else {
+            tagsLabel.isHidden = true
+            tagsLabel.text = nil
+        }
     }
     
     override func prepareForReuse() {
@@ -117,5 +140,7 @@ final class NoteCell: UITableViewCell {
         dateLabel.text = nil
         categoryLabel.text = nil
         categoryLabel.isHidden = true
+        tagsLabel.text = nil
+        tagsLabel.isHidden = true
     }
 }

@@ -12,6 +12,7 @@ final class NotesListViewController: UIViewController {
     private let coreDataManager = CoreDataManager.shared
     private var notes: [Note] = []
     private var selectedCategory: String?
+    private var selectedTags: [String] = []
     private let searchController = UISearchController(searchResultsController: nil)
 
     private lazy var tableView: UITableView = {
@@ -72,7 +73,8 @@ final class NotesListViewController: UIViewController {
         
         navigationItem.rightBarButtonItems = [
             UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNoteTapped)),
-            UIBarButtonItem(title: "Категория", style: .plain, target: self, action: #selector(categoryTapped))
+            UIBarButtonItem(title: "Категория", style: .plain, target: self, action: #selector(categoryTapped)),
+            UIBarButtonItem(title: "Теги", style: .plain, target: self, action: #selector(tagsTapped))
         ]
     }
 
@@ -107,7 +109,8 @@ final class NotesListViewController: UIViewController {
     private func applyFilters(searchText: String?) {
         notes = coreDataManager.fetchNotes(
             search: searchText,
-            category: selectedCategory
+            category: selectedCategory,
+            tags: selectedTags
         )
         tableView.reloadData()
         updateEmptyState()
@@ -128,6 +131,38 @@ final class NotesListViewController: UIViewController {
                 self?.applyFilters(searchText: self?.searchController.searchBar.text)
             })
         }
+        
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
+    
+    @objc private func tagsTapped() {
+        let allTags = coreDataManager.fetchTags()
+        let alert = UIAlertController(
+            title: "Теги (пересечение)",
+            message: allTags.isEmpty ? "Нет сохранённых тегов" : "Доступные: \(allTags.joined(separator: ","))",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { textField in
+            textField.placeholder = "tag1, tag2"
+            textField.text = self.selectedTags.joined(separator: ", ")
+        }
+        
+        alert.addAction(UIAlertAction(title: "Сбросить", style: .destructive) { [weak self] _ in
+            self?.selectedTags = []
+            self?.applyFilters(searchText: self?.searchController.searchBar.text)
+        })
+        
+        alert.addAction(UIAlertAction(title: "Применить", style: .default) { [weak self, weak alert] _ in
+            guard let input = alert?.textFields?.first?.text else { return }
+            let tags = input
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            self?.selectedTags = tags
+            self?.applyFilters(searchText: self?.searchController.searchBar.text)
+        })
         
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         present(alert, animated: true)

@@ -23,6 +23,15 @@ final class NoteEditorViewController: UIViewController {
     private var audioRecorder: AVAudioRecorder?
     private var audioPlayer: AVAudioPlayer?
     private var currentRecordingPath: String?
+    
+    private lazy var tagsTextField: UITextField = {
+        let field = UITextField()
+        field.placeholder = "Теги (через запятую)"
+        field.font = .systemFont(ofSize: 16)
+        field.borderStyle = .roundedRect
+        field.backgroundColor = .secondarySystemBackground
+        return field
+    }()
 
     private lazy var scrollView: UIScrollView = {
         let scroll = UIScrollView()
@@ -148,6 +157,7 @@ final class NoteEditorViewController: UIViewController {
         
         contentStack.addArrangedSubview(titleTextField)
         contentStack.addArrangedSubview(categoryTextField)
+        contentStack.addArrangedSubview(tagsTextField)
         contentStack.addArrangedSubview(contentTextView)
         contentStack.addArrangedSubview(addImageButton)
         contentStack.addArrangedSubview(imagesScrollView)
@@ -215,6 +225,7 @@ final class NoteEditorViewController: UIViewController {
         titleTextField.text = note.title
         contentTextView.text = note.content
         categoryTextField.text = note.category
+        tagsTextField.text = coreDataManager.tagsArray(for: note).joined(separator: ", ")
         contentPlaceholder.isHidden = !(note.content?.isEmpty ?? true)
         
         let images = coreDataManager.fetchImages(for: note)
@@ -242,13 +253,14 @@ final class NoteEditorViewController: UIViewController {
         
         let content = contentTextView.text
         let category = categoryTextField.text?.isEmpty == true ? nil : categoryTextField.text
+        let tags = parseTags(tagsTextField.text)
         
         if let existingNote = note {
-            coreDataManager.updateNote(existingNote, title: title, content: content, category: category)
+            coreDataManager.updateNote(existingNote, title: title, content: content, category: category, tags: tags)
             handleImagesSave(for: existingNote)
             handleAudioSave(for: existingNote)
         } else {
-            let newNote = coreDataManager.createNote(title: title, content: content, category: category)
+            let newNote = coreDataManager.createNote(title: title, content: content, category: category, tags: tags)
             note = newNote
             handleImagesSave(for: newNote)
             handleAudioSave(for: newNote)
@@ -499,6 +511,14 @@ extension NoteEditorViewController: UIImagePickerControllerDelegate, UINavigatio
 }
 
 private extension NoteEditorViewController {
+    func parseTags(_ text: String?) -> [String] {
+        guard let text else { return [] }
+        return text
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+    
     func handleImagesSave(for note: Note) {
         if !deletedImagePaths.isEmpty {
             coreDataManager.deleteImages(for: note, paths: deletedImagePaths)
