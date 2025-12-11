@@ -19,5 +19,9 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Нужно разрешение, чтобы выбрать фото для заметки.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужно разрешение камеры, чтобы сделать фото для заметки.</string>
 </dict>
 </plist>
