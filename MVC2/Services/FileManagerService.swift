@@ -13,11 +13,14 @@ final class FileManagerService {
     
     private init() {
         createImagesDirectoryIfNeeded()
+        createAudioDirectoryIfNeeded()
     }
     
     private enum Constants {
         static let imagesDirectoryName = "Images"
+        static let audioDirectoryName = "Audio"
         static let imageExtension = "jpg"
+        static let audioExtension = "m4a"
         static let compressionQuality: CGFloat = 0.8
     }
     
@@ -29,6 +32,10 @@ final class FileManagerService {
     
     private var imagesDirectory: URL {
         documentsDirectory.appendingPathComponent(Constants.imagesDirectoryName)
+    }
+    
+    private var audioDirectory: URL {
+        documentsDirectory.appendingPathComponent(Constants.audioDirectoryName)
     }
     
     func saveImage(_ image: UIImage) -> String? {
@@ -76,7 +83,27 @@ final class FileManagerService {
         paths.forEach { deleteImage(at: $0) }
     }
 
-    func fullURL(for relativePath: String) -> URL {
+    func makeNewAudioURL() -> (url: URL, relativePath: String) {
+        let fileName = "\(UUID().uuidString).\(Constants.audioExtension)"
+        let url = audioDirectory.appendingPathComponent(fileName)
+        let relative = "\(Constants.audioDirectoryName)/\(fileName)"
+        return (url, relative)
+    }
+    
+    func deleteAudio(at relativePath: String) {
+        let url = documentsDirectory.appendingPathComponent(relativePath)
+        do {
+            try fileManager.removeItem(at: url)
+        } catch {
+            print("Failed to delete audio: \(error)")
+        }
+    }
+    
+    func deleteAudios(from paths: [String]) {
+        paths.forEach { deleteAudio(at: $0) }
+    }
+    
+    func audioURL(for relativePath: String) -> URL {
         documentsDirectory.appendingPathComponent(relativePath)
     }
     
@@ -86,6 +113,16 @@ final class FileManagerService {
                 try fileManager.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
             } catch {
                 print("Failed to create images directory: \(error)")
+            }
+        }
+    }
+    
+    private func createAudioDirectoryIfNeeded() {
+        if !fileManager.fileExists(atPath: audioDirectory.path) {
+            do {
+                try fileManager.createDirectory(at: audioDirectory, withIntermediateDirectories: true)
+            } catch {
+                print("Failed to create audio directory: \(error)")
             }
         }
     }

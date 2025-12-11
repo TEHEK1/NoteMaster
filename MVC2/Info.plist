@@ -23,5 +23,7 @@
 	<string>Нужно разрешение, чтобы выбрать фото для заметки.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Нужно разрешение камеры, чтобы сделать фото для заметки.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Нужно разрешение микрофона, чтобы записывать аудио заметки.</string>
 </dict>
 </plist>

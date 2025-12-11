@@ -97,6 +97,14 @@ final class CoreDataManager {
                 context.delete(image)
             }
         }
+        if let audios = note.audios as? Set<NoteAudio> {
+            for audio in audios {
+                if let path = audio.audioPath {
+                    fileManagerService.deleteAudio(at: path)
+                }
+                context.delete(audio)
+            }
+        }
         context.delete(note)
         saveContext()
     }
@@ -156,6 +164,48 @@ final class CoreDataManager {
                 fileManagerService.deleteImage(at: path)
             }
             context.delete(image)
+        }
+        note.modifiedDate = Date()
+        saveContext()
+    }
+
+    @discardableResult
+    func addAudio(to note: Note, audioPath: String, orderIndex: Int32 = 0) -> NoteAudio {
+        let noteAudio = NoteAudio(context: context)
+        noteAudio.id = UUID()
+        noteAudio.audioPath = audioPath
+        noteAudio.orderIndex = orderIndex
+        noteAudio.note = note
+        
+        note.modifiedDate = Date()
+        saveContext()
+        return noteAudio
+    }
+    
+    func fetchAudios(for note: Note) -> [NoteAudio] {
+        guard let audios = note.audios as? Set<NoteAudio> else { return [] }
+        return audios.sorted { $0.orderIndex < $1.orderIndex }
+    }
+    
+    func deleteAudio(_ noteAudio: NoteAudio) {
+        if let note = noteAudio.note {
+            note.modifiedDate = Date()
+        }
+        if let path = noteAudio.audioPath {
+            fileManagerService.deleteAudio(at: path)
+        }
+        context.delete(noteAudio)
+        saveContext()
+    }
+    
+    func deleteAudios(for note: Note, paths: [String]) {
+        guard !paths.isEmpty else { return }
+        let audios = fetchAudios(for: note)
+        for audio in audios where paths.contains(audio.audioPath ?? "") {
+            if let path = audio.audioPath {
+                fileManagerService.deleteAudio(at: path)
+            }
+            context.delete(audio)
         }
         note.modifiedDate = Date()
         saveContext()

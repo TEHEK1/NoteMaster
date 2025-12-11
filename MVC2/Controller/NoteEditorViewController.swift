@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import AVFoundation
 
 final class NoteEditorViewController: UIViewController {
 
@@ -15,6 +16,13 @@ final class NoteEditorViewController: UIViewController {
     private let fileManagerService = FileManagerService.shared
     private var existingImagePaths: [String] = []
     private var deletedImagePaths: [String] = []
+    
+    private var existingAudioPaths: [String] = []
+    private var newAudioPaths: [String] = []
+    private var deletedAudioPaths: [String] = []
+    private var audioRecorder: AVAudioRecorder?
+    private var audioPlayer: AVAudioPlayer?
+    private var currentRecordingPath: String?
 
     private lazy var scrollView: UIScrollView = {
         let scroll = UIScrollView()
@@ -93,6 +101,23 @@ final class NoteEditorViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+    
+    private lazy var recordButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Записать аудио", for: .normal)
+        button.setImage(UIImage(systemName: "mic"), for: .normal)
+        button.tintColor = .systemRed
+        button.contentHorizontalAlignment = .leading
+        button.addTarget(self, action: #selector(recordTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var audioListStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        return stack
+    }()
 
     init(note: Note? = nil) {
         self.note = note
@@ -126,6 +151,8 @@ final class NoteEditorViewController: UIViewController {
         contentStack.addArrangedSubview(contentTextView)
         contentStack.addArrangedSubview(addImageButton)
         contentStack.addArrangedSubview(imagesScrollView)
+        contentStack.addArrangedSubview(recordButton)
+        contentStack.addArrangedSubview(audioListStack)
         
         contentTextView.addSubview(contentPlaceholder)
         contentTextView.delegate = self
@@ -201,6 +228,10 @@ final class NoteEditorViewController: UIViewController {
             }
         }
         updateImagesStackView()
+        
+        let audios = coreDataManager.fetchAudios(for: note)
+        existingAudioPaths = audios.compactMap { $0.audioPath }.sorted()
+        updateAudioList()
     }
 
     @objc private func saveTapped() {
@@ -215,10 +246,12 @@ final class NoteEditorViewController: UIViewController {
         if let existingNote = note {
             coreDataManager.updateNote(existingNote, title: title, content: content, category: category)
             handleImagesSave(for: existingNote)
+            handleAudioSave(for: existingNote)
         } else {
             let newNote = coreDataManager.createNote(title: title, content: content, category: category)
             note = newNote
             handleImagesSave(for: newNote)
+            handleAudioSave(for: newNote)
         }
         
         navigationController?.popViewController(animated: true)
@@ -255,6 +288,38 @@ final class NoteEditorViewController: UIViewController {
         }
         
         imagesScrollView.isHidden = selectedImages.isEmpty
+    }
+    
+    private func updateAudioList() {
+        audioListStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        let allPaths = existingAudioPaths + newAudioPaths
+        for (index, _) in allPaths.enumerated() {
+            let hStack = UIStackView()
+            hStack.axis = .horizontal
+            hStack.spacing = 8
+            
+            let label = UILabel()
+            label.text = "Аудио \(index + 1)"
+            
+            let playButton = UIButton(type: .system)
+            playButton.setImage(UIImage(systemName: "play.fill"), for: .normal)
+            playButton.tag = index
+            playButton.addTarget(self, action: #selector(playAudioTapped(_:)), for: .touchUpInside)
+            
+            let deleteButton = UIButton(type: .system)
+            deleteButton.setTitle("Удалить", for: .normal)
+            deleteButton.setTitleColor(.systemRed, for: .normal)
+            deleteButton.tag = index
+            deleteButton.addTarget(self, action: #selector(deleteAudioTapped(_:)), for: .touchUpInside)
+            
+            hStack.addArrangedSubview(label)
+            hStack.addArrangedSubview(playButton)
+            hStack.addArrangedSubview(deleteButton)
+            hStack.addArrangedSubview(UIView())
+            
+            audioListStack.addArrangedSubview(hStack)
+        }
     }
     
     private func showError(_ message: String) {
@@ -308,6 +373,105 @@ final class NoteEditorViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
         present(alert, animated: true)
     }
+    
+    @objc private func recordTapped() {
+        if let recorder = audioRecorder, recorder.isRecording {
+            finishRecording(success: true)
+            return
+        }
+        
+        AVAudioApplication.requestRecordPermission { [weak self] allowed in
+            DispatchQueue.main.async {
+                guard allowed else {
+                    self?.showError("Разрешите доступ к микрофону в настройках")
+                    return
+                }
+                self?.startRecording()
+            }
+        }
+    }
+    
+    private func startRecording() {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setActive(true)
+        } catch {
+            showError("Не удалось активировать аудиосессию")
+            return
+        }
+        
+        let newPath = fileManagerService.makeNewAudioURL()
+        currentRecordingPath = newPath.relativePath
+        
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 12000,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+        
+        do {
+            let recorder = try AVAudioRecorder(url: newPath.url, settings: settings)
+            audioRecorder = recorder
+            recorder.record()
+            recordButton.setTitle("Стоп", for: .normal)
+            recordButton.setImage(UIImage(systemName: "stop.fill"), for: .normal)
+        } catch {
+            showError("Не удалось начать запись")
+            currentRecordingPath = nil
+        }
+    }
+    
+    private func finishRecording(success: Bool) {
+        audioRecorder?.stop()
+        audioRecorder = nil
+        recordButton.setTitle("Записать аудио", for: .normal)
+        recordButton.setImage(UIImage(systemName: "mic"), for: .normal)
+        
+        guard success, let path = currentRecordingPath else {
+            currentRecordingPath = nil
+            return
+        }
+        newAudioPaths.append(path)
+        currentRecordingPath = nil
+        updateAudioList()
+    }
+    
+    @objc private func playAudioTapped(_ sender: UIButton) {
+        let allPaths = existingAudioPaths + newAudioPaths
+        guard sender.tag < allPaths.count else { return }
+        let relative = allPaths[sender.tag]
+        let url = fileManagerService.audioURL(for: relative)
+        
+        if let player = audioPlayer, player.isPlaying {
+            player.stop()
+            audioPlayer = nil
+        }
+        
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            audioPlayer = player
+            player.prepareToPlay()
+            player.play()
+        } catch {
+            showError("Не удалось воспроизвести аудио")
+        }
+    }
+    
+    @objc private func deleteAudioTapped(_ sender: UIButton) {
+        let allPaths = existingAudioPaths + newAudioPaths
+        guard sender.tag < allPaths.count else { return }
+        
+        if sender.tag < existingAudioPaths.count {
+            let removed = existingAudioPaths.remove(at: sender.tag)
+            deletedAudioPaths.append(removed)
+        } else {
+            let idx = sender.tag - existingAudioPaths.count
+            newAudioPaths.remove(at: idx)
+        }
+        updateAudioList()
+    }
 }
 
 extension NoteEditorViewController: UITextViewDelegate {
@@ -350,6 +514,22 @@ private extension NoteEditorViewController {
                 to: note,
                 imagePath: path,
                 orderIndex: Int32(existingCount + offset)
+            )
+        }
+    }
+    
+    func handleAudioSave(for note: Note) {
+        if !deletedAudioPaths.isEmpty {
+            coreDataManager.deleteAudios(for: note, paths: deletedAudioPaths)
+            fileManagerService.deleteAudios(from: deletedAudioPaths)
+        }
+        
+        let baseCount = existingAudioPaths.count
+        for (offset, path) in newAudioPaths.enumerated() {
+            coreDataManager.addAudio(
+                to: note,
+                audioPath: path,
+                orderIndex: Int32(baseCount + offset)
             )
         }
     }
