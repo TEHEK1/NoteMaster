@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		1070B33E2EEAE001001B2B77 /* MVC2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MVC2.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1070B33E2EEAE001001B2B77 /* NoteMaster.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteMaster.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		1070B3502EEAE002001B2B77 /* Exceptions for "MVC2" folder in "MVC2" target */ = {
+		1070B3502EEAE002001B2B77 /* Exceptions for "NoteMaster" folder in "NoteMaster" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 1070B33D2EEAE001001B2B77 /* MVC2 */;
+			target = 1070B33D2EEAE001001B2B77 /* NoteMaster */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1070B3402EEAE001001B2B77 /* MVC2 */ = {
+		1070B3402EEAE001001B2B77 /* NoteMaster */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				1070B3502EEAE002001B2B77 /* Exceptions for "MVC2" folder in "MVC2" target */,
+				1070B3502EEAE002001B2B77 /* Exceptions for "NoteMaster" folder in "NoteMaster" target */,
 			);
-			path = MVC2;
+			path = NoteMaster;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,7 +45,7 @@
 		1070B3352EEAE001001B2B77 = {
 			isa = PBXGroup;
 			children = (
-				1070B3402EEAE001001B2B77 /* MVC2 */,
+				1070B3402EEAE001001B2B77 /* NoteMaster */,
 				1070B33F2EEAE001001B2B77 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,7 +53,7 @@
 		1070B33F2EEAE001001B2B77 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1070B33E2EEAE001001B2B77 /* MVC2.app */,
+				1070B33E2EEAE001001B2B77 /* NoteMaster.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,9 +61,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1070B33D2EEAE001001B2B77 /* MVC2 */ = {
+		1070B33D2EEAE001001B2B77 /* NoteMaster */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1070B3512EEAE002001B2B77 /* Build configuration list for PBXNativeTarget "MVC2" */;
+			buildConfigurationList = 1070B3512EEAE002001B2B77 /* Build configuration list for PBXNativeTarget "NoteMaster" */;
 			buildPhases = (
 				1070B33A2EEAE001001B2B77 /* Sources */,
 				1070B33B2EEAE001001B2B77 /* Frameworks */,
@@ -74,13 +74,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				1070B3402EEAE001001B2B77 /* MVC2 */,
+				1070B3402EEAE001001B2B77 /* NoteMaster */,
 			);
-			name = MVC2;
+			name = NoteMaster;
 			packageProductDependencies = (
 			);
 			productName = MVC2;
-			productReference = 1070B33E2EEAE001001B2B77 /* MVC2.app */;
+			productReference = 1070B33E2EEAE001001B2B77 /* NoteMaster.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -98,7 +98,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 1070B3392EEAE001001B2B77 /* Build configuration list for PBXProject "MVC2" */;
+			buildConfigurationList = 1070B3392EEAE001001B2B77 /* Build configuration list for PBXProject "NoteMaster" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -112,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1070B33D2EEAE001001B2B77 /* MVC2 */,
+				1070B33D2EEAE001001B2B77 /* NoteMaster */,
 			);
 		};
 /* End PBXProject section */
@@ -146,7 +146,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MVC2/Info.plist;
+				INFOPLIST_FILE = NoteMaster/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -156,7 +156,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = amir.MVC2;
+				PRODUCT_BUNDLE_IDENTIFIER = amir.NoteMaster;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -172,7 +172,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = MVC2/Info.plist;
+				INFOPLIST_FILE = NoteMaster/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -182,7 +182,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = amir.MVC2;
+				PRODUCT_BUNDLE_IDENTIFIER = amir.NoteMaster;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -312,7 +312,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1070B3392EEAE001001B2B77 /* Build configuration list for PBXProject "MVC2" */ = {
+		1070B3392EEAE001001B2B77 /* Build configuration list for PBXProject "NoteMaster" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1070B3542EEAE002001B2B77 /* Debug */,
@@ -321,7 +321,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1070B3512EEAE002001B2B77 /* Build configuration list for PBXNativeTarget "MVC2" */ = {
+		1070B3512EEAE002001B2B77 /* Build configuration list for PBXNativeTarget "NoteMaster" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1070B3522EEAE002001B2B77 /* Debug */,
